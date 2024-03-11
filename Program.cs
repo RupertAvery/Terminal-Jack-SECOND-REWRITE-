@@ -3,14 +3,25 @@ using System.Threading.Channels;
 
 namespace MyApp
 {
+    enum PlayerChoice
+    {
+        None,
+        Hit,
+        Call
+    }
+
     internal class Program
     {
         static bool startFinished = false;
         static int handTotal = 0;
-        static int i = 0;
+        static int cardsTotal = 0;
         static int[] dealer = new int[21];
         static int[] hand = new int[5];
         static Random rng = new Random();
+        static bool gameOver = false;
+        static int milliseconds = 1500;
+        static int dealerTotal = 0;
+
         static void Main(string[] args)
         {
             Start();
@@ -19,12 +30,20 @@ namespace MyApp
             Console.ReadKey();
         }
 
-
+        static void Hit()
+        {
+            hand[cardsTotal] = rng.Next(1, 14);
+            if (hand[cardsTotal] > 10)
+            {
+                hand[cardsTotal] = 10;
+            }
+            handTotal += hand[cardsTotal];
+            Console.WriteLine(hand[cardsTotal]);
+            cardsTotal++;
+        }
 
         static void Call()
         {
-            int milliseconds = 1500;
-            int dealerTotal = 0;
             Console.WriteLine("Your total is " + handTotal + "\nThe dealer will now draw cards.");
             Thread.Sleep(milliseconds);
             for (int f = 0; dealerTotal <= handTotal; f++)
@@ -38,11 +57,68 @@ namespace MyApp
                 Thread.Sleep(milliseconds);
                 Console.WriteLine(dealer[f]);
             }
+        }
+        
+        static PlayerChoice GetPlayerChoice()
+        {
+            PlayerChoice playerChoice = PlayerChoice.None;
+            while (playerChoice == PlayerChoice.None)
+            {
+                Console.Write("HIT or CALL? ");
+                string choice = Console.ReadLine().ToLower();
+                if (choice == "hit")
+                {
+                    playerChoice =  PlayerChoice.Hit;
+                }
+                else if (choice == "call")
+                {
+                    playerChoice =  PlayerChoice.Call;
+                }
+                else
+                {
+                    Console.WriteLine("Try Again");
+                }
+            }
+
+            return playerChoice;
+        }
+        
+        static void CheckHitResult()
+        {
+            if (cardsTotal == 5 && handTotal <= 21)
+            {
+                Spaces();
+                Console.WriteLine("YOU WIN!\nYou managed to draw five cards without busting.");
+                gameOver = true;
+            }
+            else if (handTotal > 21)
+            {
+                Spaces();
+                Console.WriteLine("GAME OVER!\nYou busted!");
+                gameOver = true;
+            }
+            else if (handTotal == 21)
+            {
+                Spaces();
+                Console.WriteLine("BLACKJACK! YOU WIN!");
+                gameOver = true;
+            }
+        }
+
+        static void CheckCallResult()
+        {
+            Console.WriteLine("Dealer total is " + dealerTotal + ".");
             if (dealerTotal > 21)
             {
                 Thread.Sleep(milliseconds);
                 Spaces();
                 Console.WriteLine("YOU WIN!\nDealer busts!");
+            }
+            else if (handTotal > dealerTotal)
+            {
+                Thread.Sleep(milliseconds);
+                Spaces();
+                Console.WriteLine("YOU WIN!\nYou are closer!");
             }
             else
             {
@@ -50,68 +126,8 @@ namespace MyApp
                 Spaces();
                 Console.WriteLine("GAME OVER.\nDealer is closer.");
             }
+            gameOver = true;
         }
-
-
-
-        static void GetPlayerChoice()
-        {
-            bool chosen = false;
-            while (chosen == false)
-            {
-                Console.WriteLine("HIT or CALL?");
-                string choice = Console.ReadLine().ToLower();
-                if (choice == "hit")
-                {
-                    chosen = true;
-                    Hit();
-                }
-                else if (choice == "call")
-                {
-                    chosen = true;
-                    Call();
-                }
-                else
-                {
-                    Console.WriteLine("Try Again");
-                }
-            }
-        }
-
-
-
-        static void Hit()
-        {
-            hand[i] = rng.Next(1, 14);
-            if (hand[i] > 10)
-            {
-                hand[i] = 10;
-            }
-            handTotal += hand[i];
-            Console.WriteLine(hand[i]);
-            if (i == 4 && handTotal <= 21)
-            {
-                Spaces();
-                Console.WriteLine("YOU WIN!\nYou managed to draw five cards without busting.");
-            }
-            else if (handTotal > 21)
-            {
-                Spaces();
-                Console.WriteLine("GAME OVER!\nYou busted!");
-            }
-            else if (handTotal == 21)
-            {
-                Spaces();
-                Console.WriteLine("YOU WIN!\nYour card total is exactly 21!");
-            }
-            else if (startFinished == true)
-            {
-                GetPlayerChoice();
-            }
-            i++;
-        }
-
-
 
         static void Start()
         {
@@ -121,8 +137,23 @@ namespace MyApp
             Spaces();
             Hit();
             Hit();
-            startFinished = true;
-            GetPlayerChoice();
+
+            while (!gameOver)
+            {
+                Console.WriteLine($"Your total is now {handTotal}");
+                var choice = GetPlayerChoice();
+                switch (choice)
+                {
+                    case PlayerChoice.Hit:
+                        Hit();
+                        CheckHitResult();
+                        break;  
+                    case PlayerChoice.Call:
+                        Call();
+                        CheckCallResult();
+                        break;
+                }
+            }
         }
 
 
